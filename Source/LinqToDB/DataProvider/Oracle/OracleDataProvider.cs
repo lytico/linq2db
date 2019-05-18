@@ -73,42 +73,48 @@ namespace LinqToDB.DataProvider.Oracle
 #endif
 		protected override void OnConnectionTypeCreated(Type connectionType)
 		{
-			var typesNamespace  = AssemblyName + ".Types.";
+			var isDevart = Name == ProviderName.OracleDevart;
+			var typesNamespace = isDevart ? AssemblyName + "." : AssemblyName + ".Types.";
 
 			_oracleBFile        = connectionType.AssemblyEx().GetType(typesNamespace + "OracleBFile",        true);
 			_oracleBinary       = connectionType.AssemblyEx().GetType(typesNamespace + "OracleBinary",       true);
-			_oracleBlob         = connectionType.AssemblyEx().GetType(typesNamespace + "OracleBlob",         true);
-			_oracleClob         = connectionType.AssemblyEx().GetType(typesNamespace + "OracleClob",         true);
+			// OracleBlob in Devart: OracleLob(lobType); lobType may be OracleDbType.Blob, OracleDbType.BFile, OracleDbType.Clob, or OracleDbType.NClob.
+			_oracleBlob 		= connectionType.AssemblyEx().GetType(typesNamespace + (isDevart ? "OracleLob" : "OracleBlob"), true);
+			_oracleClob         = connectionType.AssemblyEx().GetType(typesNamespace + (isDevart ? "OracleLob" : "OracleClob"),         true);
 			_oracleDate         = connectionType.AssemblyEx().GetType(typesNamespace + "OracleDate",         true);
-			_oracleDecimal      = connectionType.AssemblyEx().GetType(typesNamespace + "OracleDecimal",      true);
+			_oracleDecimal      = connectionType.AssemblyEx().GetType(typesNamespace + (isDevart ? "OracleNumber" : "OracleDecimal"),      true);
 			_oracleIntervalDS   = connectionType.AssemblyEx().GetType(typesNamespace + "OracleIntervalDS",   true);
 			_oracleIntervalYM   = connectionType.AssemblyEx().GetType(typesNamespace + "OracleIntervalYM",   true);
-			_oracleRefCursor    = connectionType.AssemblyEx().GetType(typesNamespace + "OracleRefCursor",    true);
+			_oracleRefCursor    = connectionType.AssemblyEx().GetType(typesNamespace + (isDevart ? "OracleCursor" : "OracleRefCursor"),    true);
 			_oracleString       = connectionType.AssemblyEx().GetType(typesNamespace + "OracleString",       true);
 			_oracleTimeStamp    = connectionType.AssemblyEx().GetType(typesNamespace + "OracleTimeStamp",    true);
-			_oracleTimeStampLTZ = connectionType.AssemblyEx().GetType(typesNamespace + "OracleTimeStampLTZ", true);
-			_oracleTimeStampTZ  = connectionType.AssemblyEx().GetType(typesNamespace + "OracleTimeStampTZ",  true);
+
+			// Devart: OracleTimeStamp(dbtype); dbtype may be OracleDbType.TimeStamp, OracleDbType.TimeStampTZ, or OracleDbType.TimeStampLTZ.
+			_oracleTimeStampLTZ = connectionType.AssemblyEx().GetType(typesNamespace + (isDevart ? "OracleTimeStamp" : "OracleTimeStampLTZ"), true);
+			_oracleTimeStampTZ  = connectionType.AssemblyEx().GetType(typesNamespace + (isDevart ? "OracleTimeStamp" : "OracleTimeStampTZ"),  true);
+
 			_oracleRef          = connectionType.AssemblyEx().GetType(typesNamespace + "OracleRef",          false);
 			_oracleXmlType      = connectionType.AssemblyEx().GetType(typesNamespace + "OracleXmlType",      false);
 			_oracleXmlStream    = connectionType.AssemblyEx().GetType(typesNamespace + "OracleXmlStream",    false);
 
 			SetProviderField(_oracleBFile,        _oracleBFile,        "GetOracleBFile");
 			SetProviderField(_oracleBinary,       _oracleBinary,       "GetOracleBinary");
-			SetProviderField(_oracleBlob,         _oracleBlob,         "GetOracleBlob");
-			SetProviderField(_oracleClob,         _oracleClob,         "GetOracleClob");
+			SetProviderField(_oracleBlob,         _oracleBlob, 			isDevart ? "GetOracleLob" : "GetOracleBlob");
+			SetProviderField(_oracleClob,         _oracleClob, 			isDevart ? "GetOracleLob" : "GetOracleClob");
 			SetProviderField(_oracleDate,         _oracleDate,         "GetOracleDate");
-			SetProviderField(_oracleDecimal,      _oracleDecimal,      "GetOracleDecimal");
+			SetProviderField(_oracleDecimal,      _oracleDecimal, 		isDevart ? "GetOracleNumber" : "GetOracleDecimal");
 			SetProviderField(_oracleIntervalDS,   _oracleIntervalDS,   "GetOracleIntervalDS");
 			SetProviderField(_oracleIntervalYM,   _oracleIntervalYM,   "GetOracleIntervalYM");
 			SetProviderField(_oracleString,       _oracleString,       "GetOracleString");
+		
 			SetProviderField(_oracleTimeStamp,    _oracleTimeStamp,    "GetOracleTimeStamp");
-			SetProviderField(_oracleTimeStampLTZ, _oracleTimeStampLTZ, "GetOracleTimeStampLTZ");
-			SetProviderField(_oracleTimeStampTZ,  _oracleTimeStampTZ,  "GetOracleTimeStampTZ");
+			SetProviderField(_oracleTimeStampLTZ, _oracleTimeStampLTZ,  isDevart ? "GetOracleTimeStamp" : "GetOracleTimeStampLTZ");
+			SetProviderField(_oracleTimeStampTZ,  _oracleTimeStampTZ, 	isDevart ? "GetOracleTimeStamp" : "GetOracleTimeStampTZ");
 
 			try
 			{
 				if (_oracleRef != null)
-					SetProviderField(_oracleRef, _oracleRef, "GetOracleRef");
+					SetProviderField(_oracleRef, _oracleRef, (isDevart ? "GetOracleCursor" :"GetOracleRef"));
 			}
 			catch
 			{
@@ -400,11 +406,11 @@ namespace LinqToDB.DataProvider.Oracle
 			}
 		}
 
-		public string AssemblyName => Name == ProviderName.OracleNative ? "Oracle.DataAccess" : "Oracle.ManagedDataAccess";
+		public string AssemblyName => Name == ProviderName.OracleNative ? "Oracle.DataAccess" : Name == ProviderName.OracleDevart? "Devart.Data.Oracle" : "Oracle.ManagedDataAccess";
 
-		public    override string ConnectionNamespace => $"{AssemblyName}.Client";
-		protected override string ConnectionTypeName  => $"{AssemblyName}.Client.OracleConnection, {AssemblyName}";
-		protected override string DataReaderTypeName  => $"{AssemblyName}.Client.OracleDataReader, {AssemblyName}";
+		public    override string ConnectionNamespace => Name == ProviderName.OracleDevart ? AssemblyName:$"{AssemblyName}.Client";
+		protected override string ConnectionTypeName  => Name == ProviderName.OracleDevart ? $"{AssemblyName}.OracleConnection, {AssemblyName}" : $"{AssemblyName}.Client.OracleConnection, {AssemblyName}";
+		protected override string DataReaderTypeName  => Name == ProviderName.OracleDevart ? $"{AssemblyName}.OracleDataReader, {AssemblyName}" : $"{AssemblyName}.Client.OracleDataReader, {AssemblyName}";
 
 		public             bool   IsXmlTypeSupported  => _oracleXmlType != null;
 

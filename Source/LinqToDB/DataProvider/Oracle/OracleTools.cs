@@ -25,14 +25,16 @@ namespace LinqToDB.DataProvider.Oracle
 
 		static readonly OracleDataProvider _oracleNativeDataProvider  = new OracleDataProvider(ProviderName.OracleNative);
 		static readonly OracleDataProvider _oracleManagedDataProvider = new OracleDataProvider(ProviderName.OracleManaged);
+		static readonly OracleDataProvider _oracleDevartDataProvider = new OracleDataProvider(ProviderName.OracleDevart);
 
 		static OracleTools()
 		{
-			AssemblyName = DetectedProviderName == ProviderName.OracleNative ? "Oracle.DataAccess" : "Oracle.ManagedDataAccess";
+			AssemblyName = DetectedProviderName == ProviderName.OracleNative ? "Oracle.DataAccess" : DetectedProviderName == ProviderName.OracleDevart ? "Devart.Data.Oracle" : "Oracle.ManagedDataAccess";
 
 			DataConnection.AddDataProvider(ProviderName.Oracle, DetectedProvider);
 			DataConnection.AddDataProvider(_oracleNativeDataProvider);
 			DataConnection.AddDataProvider(_oracleManagedDataProvider);
+			DataConnection.AddDataProvider(_oracleDevartDataProvider);
 
 			DataConnection.AddProviderDetector(ProviderDetector);
 
@@ -78,6 +80,9 @@ namespace LinqToDB.DataProvider.Oracle
 					if (css.Name.Contains("Native"))
 						return _oracleNativeDataProvider;
 
+					if (css.Name.Contains("Devart"))
+						return _oracleNativeDataProvider;
+
 					return DetectedProvider;
 			}
 
@@ -90,13 +95,18 @@ namespace LinqToDB.DataProvider.Oracle
 			_detectedProviderName ?? (_detectedProviderName = DetectProviderName());
 
 		static OracleDataProvider DetectedProvider =>
-			DetectedProviderName == ProviderName.OracleNative ? _oracleNativeDataProvider : _oracleManagedDataProvider;
+			DetectedProviderName == ProviderName.OracleNative ?
+				_oracleNativeDataProvider:
+				DetectedProviderName == ProviderName.OracleDevart ? _oracleDevartDataProvider :  
+				_oracleManagedDataProvider;
 
 		static string DetectProviderName()
 		{
 			try
 			{
 				var path = typeof(OracleTools).AssemblyEx().GetPath();
+				if (File.Exists(Path.Combine(path, "Devart.Data.Oracle.dll")))
+					return ProviderName.OracleDevart;
 
 				if (!File.Exists(Path.Combine(path, "Oracle.DataAccess.dll")))
 					if (File.Exists(Path.Combine(path, "Oracle.ManagedDataAccess.dll")))

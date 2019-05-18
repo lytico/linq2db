@@ -340,7 +340,9 @@ namespace LinqToDB.DataProvider.Oracle
 
 		protected override string GetProviderSpecificTypeNamespace()
 		{
-			return _providerName == ProviderName.OracleManaged ? "Oracle.ManagedDataAccess.Types" : "Oracle.DataAccess.Types";
+			return _providerName == ProviderName.OracleManaged ? "Oracle.ManagedDataAccess.Types" : 
+				   _providerName == ProviderName.OracleDevart ? "Devart.Data.Oracle" : 
+					"Oracle.DataAccess.Types";
 		}
 
 		protected override string GetProviderSpecificType(string dataType)
